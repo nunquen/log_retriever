@@ -1,0 +1,6 @@
+
+
+LOG_PATH = 'logs/'
+LOG_MAXBYTES = 5242880 #1024*1024*5 bytes
+LOG_BACKUPCOUNT = 5
+LOG_NAME = 'retriever.log'
