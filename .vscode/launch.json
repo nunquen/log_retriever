@@ -1,0 +1,41 @@
+{
+    // Use IntelliSense para saber los atributos posibles.
+    // Mantenga el puntero para ver las descripciones de los existentes atributos.
+    // Para más información, visite: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: retriever.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/retriever.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--input=C:\\Users\\Saul Maldonado\\Documents\\Work\\swiss_re\\log_retriever\\tmp\\input",
+                "--output=C:\\Users\\Saul Maldonado\\Documents\\Work\\swiss_re\\log_retriever\\tmp\\output\\output.json",
+                "--mfip",
+                "--lfip",
+                "--eps",
+                "--bytes"
+            ],
+        },
+        {
+            "name": "Python: Flask",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "retriever.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "jinja": true,
+            "justMyCode": true
+        }
+    ]
+}
