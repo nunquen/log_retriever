@@ -1,3 +1,4 @@
+APP_NAME = "Log Retriever v1.0"
 
 INPUT_VALID_ASIIGNER = "="
 MANDATORY_PARAMETER_INPUT = "--input"
