@@ -15,7 +15,7 @@ pip install -r requirements.txt
    (you can use this file as input file to run the script)
 
 ## How to run the script
-1. Local run: follow the menu
+1. Local run: follow the menu after executing below's script
 ```bash
 python retriever.py
 ```
