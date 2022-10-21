@@ -11,3 +11,15 @@ venv\\Scripts\\activate.bat (windows)
 ```bash
 pip install -r requirements.txt
 ```
+4. Download test csv data from https://www.secrepo.com/squid/access.log.gz and decompress the zip file.
+   (you can use this file as input file to run the script)
+
+## How to run the script
+1. Local run: follow the menu
+```bash
+python retriever.py
+```
+2. Local unittesting
+```bash
+python retriever_test.py
+```
