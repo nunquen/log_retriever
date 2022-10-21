@@ -30,12 +30,31 @@ def logger(app):
     app.logger.addHandler(logHandler)
     app.logger.info("Starting logger")
 
-
+""" 
+Main class Retriever 
+Assumptions made:
+- Input csv file might be corrupetd: for this the utils.read_csv_file functions enables flag on_bad_lines as "skip".
+- Input csv file will be manually downloaded from https://www.secrepo.com/squid/access.log.gz and decompressed as well.
+- About script's operations:
+  - Most frequent IP and Least frequent IP
+    - Both Client IP and Destination IP are taked into account
+    - For Destination IP values a column split was made in order to separate "Access Type" from "Destination IP"
+  - This script doesn't support mudular features for new operations: for any new operation to be included a new version
+    of this script must be made
+- Output json file: operation outputs will be human readable.
+  Ex-> bytes operation will procude an output like this:
+  {
+    'description': 'Total amount of bytes exchanged', 
+    'result': '86.67Kb in total (88754 bytes)'
+  }
+- Output file might be overriden when executing this script several times.
+- This is a Visual Sudio Code project and launch.json is included for debuggin purposes.
+"""
 class Retriever:
     _app = None
     _input_file = None
     _output_file = None
-    _opeartions = []
+    _operations = []
     _allowed_input_values = [
         {
             "value": config.MANDATORY_PARAMETER_INPUT,
@@ -88,13 +107,25 @@ class Retriever:
         app:Flask,
         input_file:str,
         output_file:str,
-        opeartions:List[Dict]):
+        operations:List[Dict]):
 
         self._app = app
         self._input_file = input_file
         self._output_file = output_file
-        self._opeartions = opeartions
+        self._operations = operations
         self._df = pd.DataFrame()
+
+    def get_operations(self)-> List[Dict]:
+        return self._operations
+
+    def set_operations(self, ops: List[Dict])-> None:
+        self._operations = ops
+
+    def get_dataframe(self)-> pd.DataFrame:
+        return self._df
+
+    def set_dataframe(self, df: pd.DataFrame)-> None:
+        self._df = df
 
     @staticmethod
     def help(command: str, msg: str) -> None:
@@ -121,8 +152,9 @@ class Retriever:
         is_valid = False
         input = None
         output = None
-        opeartions = []
+        operations = []
         msg = ""
+        valid_operations_flags = True
         
         if len(args) >= 3:
             input = {"path": None, "is_a_folder": True}
@@ -134,30 +166,30 @@ class Retriever:
 
                 argument = args[index].split(config.INPUT_VALID_ASIIGNER)[0]
 
-                if argument.lower() == config.MANDATORY_PARAMETER_INPUT:
+                if argument.lower().startswith(config.MANDATORY_PARAMETER_INPUT):
                     try:
                         input_path = args[index].split(config.INPUT_VALID_ASIIGNER)[1]
                         if not os.path.exists(input_path):
                             msg = "--input path doesn't exist"
-                            return is_valid, input, output, opeartions, msg
+                            return is_valid, input, output, operations, msg
                         
                         input["path"] = input_path
                         input["is_a_folder"] = os.path.isdir(input_path)
                     except:
                         msg = "Use '=' to asign a path to --input value"
-                        return is_valid, input, output, opeartions, msg
+                        return is_valid, input, output, operations, msg
                 
-                if argument.lower() == config.MANDATORY_PARAMETER_OUTPUT:
+                if argument.lower().startswith(config.MANDATORY_PARAMETER_OUTPUT):
                     try:
                         output_path = args[index].split(config.INPUT_VALID_ASIIGNER)[1]
                         if os.path.isdir(output_path):
                             msg = "--output path is a dir and should be a file"
-                            return is_valid, input, output, opeartions, msg
+                            return is_valid, input, output, operations, msg
                         
                         output = output_path
                     except:
                         msg = "Use '=' to asign a path to --output value"
-                        return is_valid, input, output, opeartions, msg
+                        return is_valid, input, output, operations, msg
 
                 """" Evaluation optional parameters """
                 if argument.lower() not in [config.MANDATORY_PARAMETER_INPUT, config.MANDATORY_PARAMETER_OUTPUT]:
@@ -165,17 +197,18 @@ class Retriever:
 
                     if len(optional_param) == 0:
                         msg += f"\n>>{argument} argument is not recognized"
+                        valid_operations_flags = False
                         continue
                     
-                    opeartions.extend(optional_param)
+                    operations.extend(optional_param)
 
 
-            is_valid = input["path"] is not None and output is not None
+            is_valid = input["path"] is not None and output is not None and valid_operations_flags
 
             msg += "\n>>--input argument is missging" if input["path"] is None else ""
             msg += "\n>>--output argument is missging" if output is None else ""
 
-        return is_valid, input, output, opeartions, msg
+        return is_valid, input, output, operations, msg
 
     def read_input(self, input_file:Dict)-> None:
         """ Read input files (one or many) and create a Pandas DataFrame """
@@ -226,13 +259,13 @@ class Retriever:
         if self._df.shape[0] == 0:
             return
         
-        for index in range(len(self._opeartions)):
-            operation = self._opeartions[index]
+        for index in range(len(self._operations)):
+            operation = self._operations[index]
             out = {"description": "", "result": ""}
             out["description"] = operation["description"]
 
             if operation["value"] == "--mfip":
-                """ Most frequent IP """
+                # Most frequent IP
                 client_ip_df = self._df.groupby(["client_ip"]).count()["timestamp_in_seconds"]
                 client_ip = client_ip_df.idxmax()
                 client_ip_times = client_ip_df.max()
@@ -245,7 +278,7 @@ class Retriever:
                 out["result"] += f" and Destination IP '{destination_ip}' appears {destination_ip_times} times"
 
             if operation["value"] == "--lfip":
-                """ Less frequent IP """
+                # Less frequent IP
                 client_ip_df = self._df.groupby(["client_ip"]).count()["timestamp_in_seconds"]
                 client_ip = client_ip_df.idxmin()
                 client_ip_times = client_ip_df.min()
@@ -257,14 +290,13 @@ class Retriever:
                 out["result"] = f"Client IP '{client_ip}' appears {client_ip_times} times"
                 out["result"] += f" and Destination IP '{destination_ip}' appears {destination_ip_times} times"
 
-
             if operation["value"] == "--eps":
-                """" Events Per Second """
+                # Events Per Second
                 eps_value = self._df.groupby(['timestamp_in_seconds'])['timestamp_in_seconds'].count().mean()
                 out["result"] = eps_value
 
             if operation["value"] == "--bytes":
-                """ Total amount of bytes exchanged """
+                # Total amount of bytes exchanged
                 response_header_size_value = self._df["response_header_size"].sum()
                 response_size_value = self._df["response_size"].sum()
                 bytes = response_header_size_value + response_size_value
@@ -276,33 +308,34 @@ class Retriever:
         return result
         
     def print_output(self, data: List[Dict]):
-
         statistics_data = {
             "application_name": config.APP_NAME,
-            "processed_files": self._processed_files,
+            "files_processed": self._processed_files,
+            "executed_at": datetime.now().strftime(config.DATE_FORMAT),
             "operations": data
         }
 
         utils.write_json_file(output_path=self._output_file, data=statistics_data)
 
 def main(name):
-
+    """ Main application """
     app = Flask(name)
     args = sys.argv
 
     if args:
-        valid_args, input, output, opeartions, msg = Retriever.validate_arguments(args)
+        valid_args, input, output, operations, msg = Retriever.validate_arguments(args)
 
         if not valid_args:
             Retriever.help(command="help", msg=msg)
 
+        """ Logger setup """
         logger(app)
 
         retriever = Retriever(
             app=app,
             input_file=input,
             output_file=output,
-            opeartions=opeartions
+            operations=operations
         )
 
         retriever.read_input(input_file=input)
@@ -310,12 +343,6 @@ def main(name):
         operations = retriever.apply_operations()
 
         retriever.print_output(data=operations)
-
-        #TODO:
-        # Generate csv output file 
-        # Move processed files will temp/done/retrieved_YYYYMMDDHHMMSS folder
-
-
 
 if __name__ == '__main__':
     main(__name__)

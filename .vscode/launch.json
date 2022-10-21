@@ -21,6 +21,15 @@
             ],
         },
         {
+            "name": "Python: retriever_test.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/retriever_test.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [],
+        },
+        {
             "name": "Python: Flask",
             "type": "python",
             "request": "launch",
